@@ -4,15 +4,637 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pokémon Walk with Collisions</title>
-  <link rel="stylesheet" type="text/css" href="body.css" />
   <style>
-    
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: white;
+      image-rendering: pixelated;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* NPC Interaction Screen Styles */
+    .npc1-screen {
+      width: 400px;
+      height: 200px;
+      background-color: seashell;
+      color: white;
+      font: 24px Arial;
+      padding: 20px;
+      image-rendering: pixelated;
+    }
+
+    .npc2-screen {
+      width: 500px;
+      height: 250px;
+      background-color: rgba(0, 0, 255, 0.8);
+      color: yellow;
+      font: 20px Verdana;
+      padding: 20px;
+    }
+
+    .npc3-screen {
+      width: 450px;
+      height: 300px;
+      background-color: rgba(128, 0, 0, 0.8);
+      color: white;
+      font: 22px Courier New;
+      padding: 20px;
+    }
+
+    .npc4-screen {
+      width: 450px;
+      height: 250px;
+      background-color: rgba(0, 128, 0, 0.8);
+      color: white;
+      font: 20px Arial;
+      padding: 20px;
+    }
+
+    .npc5-screen {
+      width: 400px;
+      height: 200px;
+      background-color: rgba(255, 165, 0, 0.8);
+      color: black;
+      font: 18px Verdana;
+      padding: 20px;
+    }
+
+    .npc6-screen {
+      width: 500px;
+      height: 300px;
+      background-color: rgba(128, 128, 128, 0.8);
+      color: white;
+      font: 22px Courier New;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <audio id="backgroundMusic" loop autoplay>
+    <source src="Pokemon RubySapphireEmerald- Littleroot Town.mp3" type="audio/mp3">
+    Your browser does not support the audio element.
+  </audio>
+
+  <audio id="interactionSound" >
+    <source src="interaction.wav" type="audio/wav">
+    Your browser does not support the audio element.
+  </audio>
+
   <script>
+    let canvas = document.getElementById("gameCanvas");
+    let ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.imageSmoothingEnabled = false;
+
+    let TILE_SIZE = 64;
+    let MAP_WIDTH = 50; // 50 tiles wide
+    let MAP_HEIGHT = 50; // 50 tiles tall
+
+    let SPRITE_SHEET = new Image();
+    SPRITE_SHEET.src = "sprite_blu_hat.png";
+
+    let TILE_MAP = new Image();
+    TILE_MAP.src = "10giwbdj25ra1.png";
+
+    let FRAME_SIZE = 64;
+    let FRAME_COLUMNS = 4;
+    let FRAME_ROWS = 4;
+    let currentFrame = 0;
+    let frameCount = 0;
+    let frameSpeed = 8;
+
+    let player = {
+      x: 700,
+      y: 700,
+      size: TILE_SIZE,
+      speed: 3,
+      direction: 0,
+    };
+
+    let obstacles = [
+    {"x": 865, "y": 300, "width": 500, "height": 400 },
+    {"x": 225, "y": 1000, "width": 450, "height": 350 },
+    {"x": 1500, "y": 1050, "width": 350, "height": 350 },
+    {"x": 2200, "y": 2000, "width": 300, "height": 280 },
+    {"x": 2350, "y": 800, "width": 350, "height": 400},
+    {"x": 2850, "y": 100, "width": 400, "height": 300},
+
+    {"x": 1925, "y": 0, "width": 350, "height": 550},
+    {"x": 1925, "y": 700, "width": 350, "height": 550},
+    {"x": 2000, "y": 1250, "width": 350, "height": 300}, 
+    {"x": 1850, "y": 1550, "width": 625, "height": 550}, 
+    {"x": 1850, "y": 2100, "width": 275, "height": 250}, 
+    {"x": 1850, "y": 2500, "width": 275, "height": 225}, 
+    {"x": 1650, "y": 2725, "width": 600, "height": 175}, 
+    {"x": 1650, "y": 3050, "width": 600, "height": 175}, 
+
+    {"x": 0, "y": 2225, "width": 300, "height": 550}, 
+    {"x": 550, "y": 2760, "width": 1100, "height": 10}, 
+    {"x": 550, "y": 2410, "width": 10, "height": 350}, 
+    {"x": 550, "y": 2410, "width": 175, "height": 125}, 
+    {"x": 925, "y": 2410, "width": 175, "height": 125}, 
+    {"x": 1100, "y": 2210, "width": 25, "height": 200}, 
+    {"x": 1100, "y": 2210, "width": 200, "height": 25}, 
+    {"x": 1200, "y": 1900, "width": 370, "height": 300}, 
+    {"x": 1300, "y": 2200, "width": 150, "height": 100, type:"tree_stump"}, 
+    {"x": 1150, "y": 1750, "width": 400, "height": 100, type:"trees_middle_4"}, 
+    {"x": 1050, "y": 1550, "width": 400, "height": 200, type:"trees_middle_3"}, 
+    {"x": 1000, "y": 1450, "width": 400, "height": 200, type:"trees_middle_2"}, 
+    {"x": 925, "y": 1300, "width": 400, "height": 200, type:"trees_middle_1"}, 
+    {"x": 1000, "y": 1200, "width": 400, "height": 250, type:"trees_middle_-1"}, 
+    {"x": 1050, "y": 1100, "width": 400, "height": 250, type:"trees_middle_-2"}, 
+    {"x": 1100, "y": 1000, "width": 400, "height": 250, type:"trees_middle_-3"}, 
+    {"x": 1150, "y": 880, "width": 1000, "height": 270, type:"trees_middle_-4"}, 
+    {"x": 1500, "y": 730, "width": 1000, "height": 270, type:"trees_middle_-5"}, 
+    {"x": 1500, "y": 730, "width": 1000, "height": 270, type:"trees_middle_-5"}, 
+
+    {"x": 0, "y": 1800, "width": 200, "height": 390, type:"trees_left_-5"}, 
+    {"x": 0, "y": 0, "width": 1, "height": 9000, type:"border_left"}, 
+    {"x": 0, "y": 450, "width": 150, "height": 1000, type:"trees_middle_-5"}, 
+
+    {"x": 0, "y": 0, "width": 10000, "height": 200, type:"border_top"}, 
+    {"x": 0, "y": 0, "width": 900, "height": 400, type:"border_top"}, 
+    {"x": 225, "y": 400, "width": 180, "height": 180, type:"border_top"}, 
+    {"x": 575, "y": 400, "width": 180, "height": 180, type:"border_top"}, 
+
+    {"x": 3230, "y": 0, "width": 10, "height": 10000, type:"border_right"}, 
+    {"x": 2900, "y": 900, "width": 1000, "height": 200, type:"border_right"}, 
+    {"x": 2830, "y": 1100, "width": 1000, "height": 730, type:"border_right"}, 
+    {"x": 2900, "y": 1830, "width": 1000, "height": 150, type:"border_right"}, 
+    {"x": 2970, "y": 1980, "width": 1000, "height": 120, type:"border_right"}, 
+    {"x": 3040, "y": 2100, "width": 1000, "height": 150, type:"border_right"}, 
+
+    {"x": 0, "y": 3210, "width": 10000, "height": 1, type:"border_right"}, 
+    {"x": 2850, "y": 2850, "width": 10000, "height": 200, type:"border_right"}, 
+    {"x": 2560, "y": 3050, "width": 10000, "height": 200, type:"border_right"}, 
+
+    ];
+
+    let keys = {};
+    window.addEventListener("keydown", (e) => {
+      keys[e.key] = true;
+      console.log(`Key down: ${e.key}`); // Debugging log
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+      console.log(`Key up: ${e.key}`); // Debugging log
+    });
+
+    // Basic rectangle collision detection
+    function isColliding(rect1, rect2) {
+      return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+      );
+    }
     
+
+    // Check collision with obstacles for a proposed new position
+    function canMove(newX, newY) {
+      let playerBox = {
+        x: newX,
+        y: newY,
+        width: player.size,
+        height: player.size,
+      };
+      for (let obs of obstacles) {
+        if (isColliding(playerBox, obs)) {
+          return false;
+        }
+      }
+      // Skip collision check for the NPC
+      return true;
+    }
+
+    let NPC_SPRITE = new Image();
+    NPC_SPRITE.src = "npc1.png"; // Use a single sprite for all NPCs
+
+    let npcs = [
+      {
+        x: 1118,
+        y: 690,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Hello, traveler!",
+        screenClass: "npc1-screen", // Use CSS class instead of inline styles
+        choices: ["Who are you?", "Where am I?", "Goodbye"],
+        responses: {
+          "Who are you?": {
+            message: "I am a wandering merchant.",
+            choices: ["What do you sell?", "Goodbye"],
+          },
+          "Where am I?": {
+            message: "You are in a mysterious village.",
+            choices: ["Tell me more.", "Thanks!"],
+          },
+          "Goodbye": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+      {
+        x: 285,
+        y: 1320,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Welcome to our village!",
+        screenClass: "npc2-screen", // Use CSS class instead of inline styles
+        choices: ["Tell me about this place.", "Can I help?", "See you later."],
+        responses: {
+          "Tell me about this place.": {
+            message: "This is a peaceful village surrounded by forests.",
+            choices: ["What about the forest?", "Thanks!"],
+          },
+          "Can I help?": {
+            message: "We could use some help gathering herbs.",
+            choices: ["Where can I find them?", "I'll think about it."],
+          },
+          "See you later.": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+      {
+        x: 1640,
+        y: 1390,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Beware of the forest ahead!",
+        screenClass: "npc3-screen", // Use CSS class instead of inline styles
+        choices: ["Why is it dangerous?", "What should I do?", "Thanks for the warning."],
+        responses: {
+          "Why is it dangerous?": {
+            message: "The forest is full of wild beasts.",
+            choices: ["How can I defend myself?", "I'll avoid it."],
+          },
+          "What should I do?": {
+            message: "Stay on the main path and avoid the shadows.",
+            choices: ["Got it.", "Thanks!"],
+          },
+          "Thanks for the warning.": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+      {
+        x: 2420,
+        y: 1170,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Greetings, adventurer!",
+        screenClass: "npc4-screen", // Use CSS class instead of inline styles
+        choices: ["What is this place?", "Do you need help?", "Goodbye"],
+        responses: {
+          "What is this place?": {
+            message: "This is the edge of the enchanted forest.",
+            choices: ["Tell me more.", "Thanks!"],
+          },
+          "Do you need help?": {
+            message: "Yes, we need someone to scout the forest.",
+            choices: ["I can do it.", "Not right now."],
+          },
+          "Goodbye": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+      {
+        x: 2925,
+        y: 400,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Hello there!",
+        screenClass: "npc5-screen", // Use CSS class instead of inline styles
+        choices: ["Who are you?", "What are you doing here?", "Goodbye"],
+        responses: {
+          "Who are you?": {
+            message: "I am a traveling bard.",
+            choices: ["Can you play a song?", "Goodbye"],
+          },
+          "What are you doing here?": {
+            message: "I am gathering inspiration for my next song.",
+            choices: ["Tell me more.", "Good luck!"],
+          },
+          "Goodbye": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+      {
+        x: 2280,
+        y: 2250,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        message: "Beware of the mountains ahead!",
+        screenClass: "npc6-screen", // Use CSS class instead of inline styles
+        choices: ["Why should I beware?", "What can I do?", "Thanks for the warning."],
+        responses: {
+          "Why should I beware?": {
+            message: "The mountains are treacherous and full of dangers.",
+            choices: ["How can I prepare?", "I'll avoid them."],
+          },
+          "What can I do?": {
+            message: "Make sure you have enough supplies and a map.",
+            choices: ["Got it.", "Thanks!"],
+          },
+          "Thanks for the warning.": {
+            message: "",
+            choices: null,
+          },
+        },
+      },
+    ];
+
+    let showMessage = null;
+
+    function isNearNPC(player, npc) {
+      let distance = Math.sqrt(
+        Math.pow(player.x - npc.x, 2) + Math.pow(player.y - npc.y, 2)
+      );
+      return distance < TILE_SIZE;
+    }
+
+    let interactionScreen = {
+      active: false,
+      message: "",
+      width: 0,
+      height: 0,
+      backgroundColor: "",
+      textColor: "",
+      font: "",
+      padding: 20,
+      nextScreen: null, // Add property for the next screen
+      screenClass: "", // Add screenClass property
+    };
+
+    let a = null, b = null, c = null; // Variables to store answers
+
+    // Add event listener for number key presses (1, 2, 3)
+    window.addEventListener("keydown", (e) => {
+      if (interactionScreen.active && interactionScreen.choices) {
+        if (e.key === "1" || e.key === "2" || e.key === "3") {
+          let choiceIndex = parseInt(e.key) - 1;
+          if (choiceIndex >= 0 && choiceIndex < interactionScreen.choices.length) {
+            let selectedChoice = interactionScreen.choices[choiceIndex];
+            
+            // Find the NPC based on x and y coordinates
+            let npc = npcs.find(npc => 
+              Math.abs(npc.x - player.x) < TILE_SIZE && 
+              Math.abs(npc.y - player.y) < TILE_SIZE
+            );
+
+            if (npc && npc.responses[selectedChoice]) {
+              let response = npc.responses[selectedChoice];
+              interactionScreen.message = response.message;
+              interactionScreen.choices = response.choices;
+              
+              // If the selected choice is "Goodbye", close the interaction screen
+              if (selectedChoice === "Goodbye" || response.message === "") {
+                interactionScreen.active = false;
+                interactionScreen.message = "";
+                interactionScreen.choices = null;
+              }
+            } else {
+              interactionScreen.active = false;
+              interactionScreen.message = "";
+              interactionScreen.choices = null;
+            }
+          }
+        }
+      }
+    });
+
+    let backgroundMusic = document.getElementById("backgroundMusic");
+    let interactionSound = document.getElementById("interactionSound");
+
+    backgroundMusic.volume = 0.1; // Adjust background music volume (0.0 to 1.0)
+    interactionSound.volume = 0.5; // Adjust interaction sound volume (0.0 to 1.0)
+
+    // Function to play sound
+    function playSound(soundElement) {
+      soundElement.currentTime = 0; // Reset time to start
+      soundElement.play();
+    }
+
+    // Store and restore music playback state
+    function storePlaybackState() {
+      localStorage.setItem('musicPlaying', backgroundMusic.paused ? 'false' : 'true');
+    }
+
+    function restorePlaybackState() {
+      const isPlaying = localStorage.getItem('musicPlaying') === 'true';
+      if (isPlaying) {
+        // Ensure the audio is loaded before attempting to play
+        if (backgroundMusic.readyState >= 4) {
+          backgroundMusic.play();
+        } else {
+          backgroundMusic.addEventListener('canplay', function() {
+            backgroundMusic.play();
+            backgroundMusic.removeEventListener('canplay', arguments.callee); // Remove the listener after playing
+          });
+        }
+      }
+    }
+
+    // Start music on first user interaction
+    document.addEventListener('click', function() {
+      backgroundMusic.play();
+      storePlaybackState(); // Store the playback state
+    });
+
+    // Restore playback state on page load
+    window.addEventListener('load', restorePlaybackState);
+
+    // Store playback state before the page is unloaded
+    window.addEventListener('beforeunload', storePlaybackState);
+
+    function update() {
+      let moving = false;
+      let newX = player.x;
+      let newY = player.y;
+
+      if (!interactionScreen.active) { // Disable movement when interaction screen is active
+        if (keys["w"] || keys["ArrowUp"]) {
+          newY = player.y - player.speed;
+          player.direction = 3;
+          moving = true;
+        }
+        if (keys["s"] || keys["ArrowDown"]) {
+          newY = player.y + player.speed;
+          player.direction = 0;
+          moving = true;
+        }
+        if (keys["a"] || keys["ArrowLeft"]) {
+          newX = player.x - player.speed;
+          player.direction = 1;
+          moving = true;
+        }
+        if (keys["d"] || keys["ArrowRight"]) {
+          newX = player.x + player.speed;
+          player.direction = 2;
+          moving = true;
+        }
+
+        // Only update position if no collision would occur
+        if (canMove(newX, newY)) {
+          player.x = newX;
+          player.y = newY;
+        }
+      }
+
+      if (moving) {
+        frameCount++;
+        if (frameCount >= frameSpeed) {
+          currentFrame = (currentFrame + 1) % FRAME_COLUMNS;
+          frameCount = 0;
+        }
+      } else {
+        currentFrame = 0;
+      }
+
+      // Toggle interaction screen
+      if (keys["e"]) {
+        for (let npc of npcs) {
+          if (isNearNPC(player, npc)) {
+            interactionScreen.active = !interactionScreen.active;
+            if (interactionScreen.active) {
+              interactionScreen.message = npc.message;
+              interactionScreen.width = 400; // Set a default width
+              interactionScreen.height = 200; // Set a default height
+              interactionScreen.backgroundColor = ""; // Clear background color
+              interactionScreen.textColor = ""; // Clear text color
+              interactionScreen.font = ""; // Clear font
+              interactionScreen.choices = npc.choices; // Add choices to interaction screen
+              interactionScreen.screenClass = npc.screenClass; // Set the screenClass
+              playSound(interactionSound);
+            } else {
+              interactionScreen.message = "";
+              interactionScreen.choices = null; // Clear choices when screen is closed
+              interactionScreen.screenClass = ""; // Clear the screenClass
+            }
+            keys["e"] = false; // Prevent repeated toggling
+            break;
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Ensure camera coordinates follow the player and stay within bounds
+      let maxCamX = Math.max(0, MAP_WIDTH * TILE_SIZE - canvas.width);
+      let maxCamY = Math.max(0, MAP_HEIGHT * TILE_SIZE - canvas.height);
+      let camX = Math.max(0, Math.min(player.x - canvas.width / 2, maxCamX));
+      let camY = Math.max(0, Math.min(player.y - canvas.height / 2, maxCamY));
+
+      // Draw the map
+      ctx.drawImage(TILE_MAP, -camX, -camY, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+
+      // Draw all NPCs
+      for (let npc of npcs) {
+        ctx.drawImage(
+          NPC_SPRITE,
+          0, 0, TILE_SIZE, TILE_SIZE,
+          npc.x - camX,
+          npc.y - camY,
+          npc.width,
+          npc.height
+        );
+      }
+
+      // Draw the player sprite
+      let sx = currentFrame * FRAME_SIZE;
+      let sy = player.direction * FRAME_SIZE;
+      ctx.drawImage(
+        SPRITE_SHEET,
+        sx,
+        sy,
+        FRAME_SIZE,
+        FRAME_SIZE,
+        player.x - camX,
+        player.y - camY,
+        TILE_SIZE,
+        TILE_SIZE
+      );
+
+      // Draw interaction screen if active
+      if (interactionScreen.active) {
+        let popupX = (canvas.width - interactionScreen.width) / 2;
+        let popupY = (canvas.height - interactionScreen.height) / 2;
+
+        // Draw popup background
+        let screenClass = interactionScreen.screenClass;
+        let tempCanvas = document.createElement('canvas');
+        tempCanvas.width = interactionScreen.width;
+        tempCanvas.height = interactionScreen.height;
+        let tempCtx = tempCanvas.getContext('2d');
+
+        // Apply styles from the CSS class
+        let element = document.createElement('div');
+        element.className = screenClass;
+        document.body.appendChild(element); // Append to body to compute styles
+        let style = getComputedStyle(element);
+
+        tempCtx.fillStyle = style.backgroundColor;
+        tempCtx.fillRect(0, 0, interactionScreen.width, interactionScreen.height);
+        document.body.removeChild(element); // Remove the element
+
+        ctx.fillStyle = interactionScreen.textColor;
+        ctx.font = interactionScreen.font;
+
+        ctx.drawImage(tempCanvas, popupX, popupY);
+
+        // Draw popup text
+        ctx.fillStyle = style.color;
+        ctx.font = style.font;
+        ctx.fillText(
+          interactionScreen.message,
+          popupX + interactionScreen.padding,
+          popupY + interactionScreen.padding + 24
+        );
+
+        // Draw choices
+        if (interactionScreen.choices) {
+          for (let i = 0; i < interactionScreen.choices.length; i++) {
+            ctx.fillText(
+              `${i + 1}. ${interactionScreen.choices[i]}`,
+              popupX + interactionScreen.padding,
+              popupY + interactionScreen.padding + 100 + i * 30
+            );
+          }
+        }
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start music on first user interaction
+    document.addEventListener('click', function() {
+      backgroundMusic.play();
+      storePlaybackState(); // Store the playback state
+    });
+
+    gameLoop();
   </script>
 </body>
 </html>

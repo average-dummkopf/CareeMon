@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: white;
+      image-rendering: pixelated;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+    #menuOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      z-index: 10;
+    }
+    #menuOverlay h1 {
+      font-size: 48px;
+      margin: 0;
+    }
+    #menuOverlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="menuOverlay">
+    <h1>Game Menu</h1>
+    <button id="startGameButton">Start Game</button>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const menuOverlay = document.getElementById("menuOverlay");
+    const startGameButton = document.getElementById("startGameButton");
+    const canvas = document.getElementById("gameCanvas");
+
+    startGameButton.addEventListener("click", () => {
+      menuOverlay.style.display = "none"; // Hide the menu
+      startGame(); // Call the game start logic
+    });
+
+    function startGame() {
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ctx.imageSmoothingEnabled = false;
+
+      // ...existing game initialization logic...
+    }
+  </script>
+</body>
+</html>
